@@ -29,22 +29,25 @@ openssl req -new -key ${TEMP_DIRECTORY}/server-key.pem \
     -config ${TEMP_DIRECTORY}/csr.conf
 
 cat <<EOF | kubectl create -f -
-apiVersion: certificates.k8s.io/v1beta1
+apiVersion: certificates.k8s.io/v1
 kind: CertificateSigningRequest
 metadata:
   name: ${SERVICE_NAME}.${NAMESPACE}.svc
 spec:
   request: $(cat ${TEMP_DIRECTORY}/server.csr | base64 | tr -d '\n')
+  signerName: example.com/mysigner
   usages:
   - digital signature
   - key encipherment
   - server auth
 EOF
 
+
 kubectl certificate approve ${SERVICE_NAME}.${NAMESPACE}.svc
 
 for x in $(seq 10); do
     SERVER_CERT=$(kubectl get csr ${SERVICE_NAME}.${NAMESPACE}.svc -o jsonpath='{.status.certificate}')
+    echo "Trying..."
     if [[ ${SERVER_CERT} != '' ]]; then
         break
     fi
